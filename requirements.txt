@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+icalendar
+python-dotenv
+jinja2
+pydantic
+email-validator

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinkInvite</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body data-smtp-ready="{{ 'true' if smtp_ready else 'false' }}">
+  <main class="container">
+    <header class="header">
+      <div>
+        <h1>
+          <span class="logo-icon">🔗</span>
+          <span class="brand-text">LinkInvite</span>
+        </h1>
+        <p class="subtitle">Create a hangout invite, send it, and always save your calendar file.</p>
+      </div>
+    </header>
+
+    <div id="smtpChip"></div>
+    <div id="bannerHost" aria-live="polite"></div>
+    <div id="toastHost" aria-live="polite" aria-atomic="true"></div>
+
+    <form id="inviteForm" novalidate>
+      <div class="form-grid">
+        <section class="panel">
+          <div class="panel-title">Event</div>
+
+          <label>
+            Title
+            <input type="text" id="title" name="title" placeholder="Hangout with [Your Name]">
+          </label>
+
+          <label>
+            Your Name
+            <input type="text" id="your_name" name="your_name" placeholder="Your name">
+          </label>
+
+          <label>
+            <span class="label-line">Start Time <span class="req" aria-hidden="true">*</span></span>
+            <input type="datetime-local" id="start_time" name="start_time" required>
+          </label>
+
+          <label>
+            <span class="label-line">Duration (hours) <span class="req" aria-hidden="true">*</span></span>
+            <input type="number" id="duration" name="duration" min="0.25" step="0.25" required>
+          </label>
+
+          <label>
+            Location
+            <input type="text" id="location" name="location" placeholder="Cafe, Park, Zoom, etc.">
+          </label>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title">Message</div>
+
+          <label>
+            Invitee Email
+            <div class="email-row">
+              <input type="email" id="invitee_email" name="invitee_email" placeholder="friend@example.com">
+              <button type="button" id="addEmailBtn">Add</button>
+            </div>
+            <div id="inviteeError" class="field-error" role="alert"></div>
+          </label>
+
+          <div id="emailPills" class="pill-wrap" aria-live="polite"></div>
+
+          <label>
+            Custom Subject
+            <input type="text" id="custom_subject" name="custom_subject" placeholder="You are invited!">
+          </label>
+
+          <label>
+            Custom Body
+            <textarea id="custom_body" name="custom_body" rows="5" placeholder="Add a personal note..."></textarea>
+          </label>
+        </section>
+      </div>
+
+      <button id="submitBtn" type="submit" disabled>
+        <span id="submitIcon">⬇</span>
+        <span id="submitText">Download</span>
+      </button>
+    </form>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
