@@ -1,3 +1,5 @@
+"""Email delivery helpers for calendar invites."""
+
 from __future__ import annotations
 
 import smtplib
@@ -18,6 +20,7 @@ def send_invite_email(
     body: str,
     ics_bytes: bytes,
 ) -> None:
+    """Send an invite email with an ICS attachment using Gmail SMTP."""
     message = MIMEMultipart("mixed")
     message["From"] = sender_email
     message["To"] = ", ".join(recipients)

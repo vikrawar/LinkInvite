@@ -12,12 +12,17 @@ const toastHost = document.getElementById("toastHost");
 const inviteeError = document.getElementById("inviteeError");
 const smtpChip = document.getElementById("smtpChip");
 
+// localStorage key for warnings that should survive page refreshes.
 const PERSIST_KEY = "linkinvite_persistent_banner";
+// Backend injects SMTP availability via a data attribute on <body>.
 const smtpReady = document.body.dataset.smtpReady === "true";
+/** @type {string[]} */
 const inviteeEmails = [];
+// Track the active toast timeout so consecutive toasts do not overlap.
 let toastTimer = null;
 
 function isValidEmail(value) {
+  // Lightweight syntax validation for immediate UX feedback.
   const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
   return emailRegex.test((value || "").trim());
 }
@@ -27,6 +32,7 @@ function setInviteeError(message = "") {
 }
 
 function setPersistentBanner(message, tone = "warn") {
+  // Store only minimal metadata required to re-render the banner.
   const payload = { message, tone };
   localStorage.setItem(PERSIST_KEY, JSON.stringify(payload));
   renderBanners();
@@ -59,6 +65,7 @@ function addBanner(message, tone = "info", dismissible = false) {
 }
 
 function showToast(message, tone = "info", timeoutMs = 4500) {
+  // Guard in case host node is absent in unexpected DOM states.
   if (!toastHost) return;
   toastHost.innerHTML = "";
   if (toastTimer) {
@@ -91,6 +98,7 @@ function showToast(message, tone = "info", timeoutMs = 4500) {
 }
 
 function renderSmtpChip() {
+  // Show startup mode clearly when backend is download-only.
   if (!smtpChip) return;
   smtpChip.innerHTML = "";
   if (!smtpReady) {
@@ -104,6 +112,7 @@ function renderSmtpChip() {
 function renderBanners() {
   bannerHost.innerHTML = "";
 
+  // Persisted banners survive refresh until the user dismisses them.
   const saved = localStorage.getItem(PERSIST_KEY);
   if (!saved) {
     return;
@@ -126,6 +135,7 @@ function renderPills() {
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
     removeBtn.textContent = "x";
+    // Accessibility label for screen readers.
     removeBtn.ariaLabel = `Remove ${email}`;
     removeBtn.addEventListener("click", () => {
       const idx = inviteeEmails.indexOf(email);
@@ -142,9 +152,11 @@ function renderPills() {
 }
 
 function updateSubmitState() {
+  // Start time and duration are the only required fields for file generation.
   const ready = Boolean(startInput.value) && Boolean(durationInput.value);
   submitBtn.disabled = !ready;
 
+  // Button copy reflects "download only" vs "send + download" intent.
   const inputHasValidEmail = isValidEmail(inviteeInput.value);
   const hasValidEmail = inviteeEmails.length > 0 || inputHasValidEmail;
 
@@ -164,6 +176,7 @@ function tryAddEmail() {
   }
   setInviteeError("");
   if (!inviteeEmails.includes(candidate)) {
+    // De-duplicate exact matches to keep payload clean.
     inviteeEmails.push(candidate);
   }
   inviteeInput.value = "";
@@ -174,6 +187,7 @@ function tryAddEmail() {
 addEmailBtn.addEventListener("click", tryAddEmail);
 inviteeInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
+    // Enter in the email field adds an address instead of submitting form.
     event.preventDefault();
     tryAddEmail();
   }
@@ -198,11 +212,14 @@ form.addEventListener("submit", async (event) => {
   }
 
   const localDate = new Date(startInput.value);
+  // Client timezone is informational; backend uses UTC for ICS timestamps.
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+  // Null values allow backend defaults/fallbacks to apply consistently.
   const payload = {
     title: document.getElementById("title").value || null,
     your_name: document.getElementById("your_name").value || null,
+    // datetime-local is interpreted in local time, then normalized to UTC.
     start_time_utc: localDate.toISOString(),
     duration_hours: Number(durationInput.value),
     location: document.getElementById("location").value || null,
@@ -219,6 +236,7 @@ form.addEventListener("submit", async (event) => {
   });
 
   const mailStatus = response.headers.get("X-LinkInvite-Mail-Status") || "";
+  // Backend always returns the ICS file; headers are the status side-channel.
   const mailMessage =
     response.headers.get("X-LinkInvite-Mail-Message") ||
     "Invite downloaded.";
@@ -231,8 +249,10 @@ form.addEventListener("submit", async (event) => {
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
+  // Release temporary object URL to avoid leaking memory.
   URL.revokeObjectURL(fileUrl);
 
+  // Keep SMTP configuration warnings visible across reloads.
   if (mailStatus === "smtp_not_configured") {
     setPersistentBanner(mailMessage, "warn");
     showToast(mailMessage, "warn", 6000);
@@ -240,6 +260,7 @@ form.addEventListener("submit", async (event) => {
   }
 
   renderBanners();
+  // A failed send still means download succeeded; message tone communicates this.
   if (mailStatus === "failed") {
     showToast(mailMessage, "warn", 7000);
   } else {

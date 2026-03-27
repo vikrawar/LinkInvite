@@ -1,1 +1,2 @@
+"""LinkInvite application package."""
 

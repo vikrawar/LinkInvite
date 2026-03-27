@@ -1,3 +1,9 @@
+"""FastAPI entrypoint for LinkInvite.
+
+This module serves the web UI and exposes the endpoint that generates an ICS
+invite. If SMTP credentials are configured, it also attempts to email the
+invite while always returning the downloadable calendar file.
+"""
 from __future__ import annotations
 
 import os
@@ -21,6 +27,8 @@ app = FastAPI(title="LinkInvite")
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
+# SMTP credentials are optional; missing credentials keep the app in
+# "download-only" mode.
 SENDER_EMAIL = os.getenv("SENDER_EMAIL", "").strip()
 APP_PASSWORD = os.getenv("APP_PASSWORD", "").strip()
 SMTP_READY = bool(SENDER_EMAIL and APP_PASSWORD)
@@ -34,6 +42,7 @@ if not SMTP_READY:
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request) -> HTMLResponse:
+    """Render the main invite creation page."""
     return templates.TemplateResponse(
         request=request,
         name="index.html",
@@ -43,6 +52,11 @@ def index(request: Request) -> HTMLResponse:
 
 @app.post("/invite.ics")
 def create_invite(payload: InviteRequest) -> StreamingResponse:
+    """Generate an invite file and optionally send it via SMTP.
+
+    The endpoint always returns an ICS file response and includes mail
+    status headers for the frontend to render user feedback.
+    """
     recipients = normalize_emails(payload.invitee_emails)
     has_recipients = len(recipients) > 0
     should_attempt_send = SMTP_READY and has_recipients
@@ -102,6 +116,7 @@ def create_invite(payload: InviteRequest) -> StreamingResponse:
         "X-LinkInvite-Mail-Status": mail_status,
         "X-LinkInvite-Mail-Message": mail_message,
     }
+    # Stream the in-memory ICS bytes as a downloadable attachment.
     return StreamingResponse(
         BytesIO(ics_bytes),
         media_type="text/calendar; charset=utf-8",

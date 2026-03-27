@@ -1,3 +1,5 @@
+"""ICS calendar construction utilities."""
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -7,6 +9,7 @@ from icalendar import Calendar, Event
 
 
 def resolve_summary(title: str | None, your_name: str | None) -> str:
+    """Resolve event title using explicit title, then name-based fallback."""
     trimmed_title = (title or "").strip()
     if trimmed_title:
         return trimmed_title
@@ -26,6 +29,7 @@ def build_ics_bytes(
     location: str | None,
     method_request: bool,
 ) -> bytes:
+    """Build and serialize a single-event ICS calendar document."""
     dtstart = start_utc.astimezone(timezone.utc)
     dtend = dtstart + timedelta(hours=duration_hours)
 
